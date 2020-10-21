@@ -21,7 +21,7 @@ class _Router:
             requests.models.Response: The request response (JSON).
         """
         request_url = urljoin(self.baseurl, endpoint)
-        return self._get(request_url, params=params).json()
+        return self._get(request_url, params=params)
 
     def get_file(
             self,
@@ -58,8 +58,7 @@ class _Router:
             return "Error: cannot have both data and json"
 
         request_url = urljoin(self.baseurl, endpoint)
-        return self.session.post(
-                request_url, data=data, files=files, json=json).json()
+        return self.session.post(request_url, data=data, files=files, json=json)
 
     def delete(
             self,
@@ -123,6 +122,7 @@ class DoccanoClient(_Router):
         url = 'v1/auth-token'
         auth = {'username': username, 'password': password}
         response = self.post(url, auth)
+        response = response.json()
         token = response['token']
         self.session.headers.update(
             {
@@ -478,6 +478,37 @@ class DoccanoClient(_Router):
             )
         )
 
+    def add_rolemapping(
+        self,
+        project_id: int,
+        user_id: int,
+        role_id: int,
+    ) -> requests.models.Response:
+        """
+        Adds a new rolemapping to the given project id
+        """
+        return self.post(
+            'v1/projects/{project_id}/roles'.format(
+                project_id=project_id
+            ),
+            json={"user": user_id, "role": role_id}
+        )
+
+    def delete_rolemapping(
+        self,
+        project_id: int,
+        rolemapping_id: int,
+    ) -> requests.models.Response:
+        """
+        Deletes a given rolemapping ID from a given project id
+        """
+        return self.delete(
+            'v1/projects/{project_id}/roles/{rolemapping_id}'.format(
+                project_id=project_id,
+                rolemapping_id=rolemapping_id
+            )
+        )
+
     def get_rolemapping_detail(
         self,
         project_id: int,
@@ -487,7 +518,7 @@ class DoccanoClient(_Router):
         Currently broken!
         """
         return self.get(
-            'v1/projets/{project_id}/roles/{rolemapping_id}'.format(
+            'v1/projects/{project_id}/roles/{rolemapping_id}'.format(
                 project_id=project_id,
                 rolemapping_id=rolemapping_id
             )
@@ -532,6 +563,36 @@ class DoccanoClient(_Router):
             ),
             files=files,
             data=data
+        )
+
+    def post_labels_upload(
+        self,
+        project_id: int,
+        file_name: str,
+        file_path: str = './',
+    ) -> requests.models.Response:
+        """
+        Uploads a label file to a Doccano project.
+
+        Args:
+            project_id (int): The project id number..
+            file_name (str): The name of the label file.
+            file_path (str): The parent path of the label file. Defaults to `./`.
+
+        Returns:
+            requests.models.Response: The request response.
+        """
+        files = {
+            'file': (
+                file_name,
+                open(os.path.join(file_path, file_name), 'rb')
+            )
+        }
+        return self.post(
+            'v1/projects/{project_id}/label-upload'.format(
+                project_id=project_id
+            ),
+            files=files,
         )
 
     def post_approve_labels(
